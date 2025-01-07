@@ -1,7 +1,10 @@
 const express = require("express");
 const { initalizeDatabase } = require("./db/db.connect");
+
 const Products = require("./models/products.models");
 const Wishlist = require("./models/wishlists.models");
+const Cart = require("./models/cartProducts.models");
+
 const app = express();
 const cors = require("cors");
 
@@ -66,6 +69,7 @@ app.get("/wishlist", async (req, res) => {
     res.status(500).json({ error: `Server error: ${err.message}` });
   }
 });
+
 
 // To get product by Id route
 
@@ -470,6 +474,77 @@ app.delete("/wishlist/:wishlistId", async (req, res) => {
     }
 })
 
+async function obtainAllCartProducts(){
+  try {
+    const products = await Cart.find()
+    return products
+  } catch (error) {
+    throw error
+  }
+}
+
+app.get('/cart/products', async (req, res) => {
+  try{
+    const products = await obtainAllCartProducts();
+
+    if (products.length > 0) {
+      res.status(200).json(products);
+    } else {
+      res.status(404).json({ error: "Products Not Found." });
+    }  
+  } catch (error) {
+    res.status(500).json({ error: `Server error: ${err.message}` });
+  }
+})
+
+async function seedCartProducts(product){
+  try {
+    const product = new Cart(product)
+    const savedProduct = product.save()
+    return savedProduct
+  } catch (error){
+    throw error
+  }
+}
+
+app.post('/cart/product', async (req, res) => {
+  try {
+    const product = await seedCartProducts(req.body)
+
+    if (product) {
+      res.status(200).json(product);
+    } else {
+      res.status(400).json({
+        error: "Failed to add product. Check input data is in correct format.",
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ error: `Server error: ${err.message}` });
+  }
+})
+
+async function deleteCartProducts(id){
+  try {
+      const product = await Cart.findByIdAndDelete(id)
+      return product
+  } catch (error){
+      throw error
+  }
+}
+
+app.delete("/cart/product/:productId", async (req, res) => {
+  try {
+      const product = await deleteCartProducts(req.params.productId)
+
+      if(product){
+          res.status(200).json({message: "Product deleted successfully.", product: product})
+      } else {
+          res.status(404).json({message: "Failed to delete cart product not found."})
+      }
+  } catch (error) {
+      res.status(500).json({error: `Failed to delete Products: ${error}.`})
+  }
+})
 
 const PORT = 3000;
 app.listen(PORT, () => {
