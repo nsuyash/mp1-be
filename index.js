@@ -497,10 +497,10 @@ app.get('/cart/products', async (req, res) => {
   }
 })
 
-async function seedCartProducts(product){
+async function seedCartProducts(productData){
   try {
-    const product = new Cart(product)
-    const savedProduct = product.save()
+    const product = new Cart(productData)
+    const savedProduct = await product.save()
     return savedProduct
   } catch (error){
     throw error
