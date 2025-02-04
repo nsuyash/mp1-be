@@ -557,7 +557,7 @@ const updateCartProduct = async (productId, quantity) => {
 
 app.put("/cart/product/:productId", async (req, res) => {
   try{
-    const product = await updateCartProduct(req.params.productId)
+    const product = await updateCartProduct(req.params.productId, req.body)
 
     if(product){
       res.status(200).json({message: "Product update successfully.", product: product})
