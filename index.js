@@ -484,7 +484,7 @@ async function obtainAllCartProducts(){
 }
 
 app.get('/cart/products', async (req, res) => {
-  try{
+  try{                                                      
     const products = await obtainAllCartProducts();
 
     if (products.length > 0) {
@@ -543,6 +543,29 @@ app.delete("/cart/product/:productId", async (req, res) => {
       }
   } catch (error) {
       res.status(500).json({error: `Failed to delete Products: ${error}.`})
+  }
+})
+
+const updateCartProduct = async (productId, quantity) => {
+ try{ 
+    const product = await Cart.findByIdAndUpdate(productId, quantity, {new: true})
+    return product;
+ } catch (error) {
+  throw error
+ }
+}
+
+app.update("/cart/product/:productId", async (req, res) => {
+  try{
+    const product = await updateCartProduct(req.params.productId)
+
+    if(product){
+      res.status(200).json({message: "Product update successfully.", product: product})
+  } else {
+      res.status(404).json({message: "Failed to update cart product not found."})
+  }
+  } catch (error) {
+    res.status(500).json({error: `Failed to update product: ${error}.`})
   }
 })
 
