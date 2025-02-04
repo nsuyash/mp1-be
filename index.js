@@ -555,7 +555,7 @@ const updateCartProduct = async (productId, quantity) => {
  }
 }
 
-app.update("/cart/product/:productId", async (req, res) => {
+app.put("/cart/product/:productId", async (req, res) => {
   try{
     const product = await updateCartProduct(req.params.productId)
 
