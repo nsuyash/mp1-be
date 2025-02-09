@@ -548,7 +548,7 @@ app.delete("/cart/product/:productId", async (req, res) => {
 
 const updateCartProduct = async (productId, quantity) => {
  try{ 
-    const product = await Cart.findByIdAndUpdate(productId, quantity, {new: true})
+    const product = await Cart.findByIdAndUpdate(productId, { quantity }, {new: true})
     return product;
  } catch (error) {
   throw error
@@ -557,7 +557,8 @@ const updateCartProduct = async (productId, quantity) => {
 
 app.put("/cart/product/:productId", async (req, res) => {
   try{
-    const product = await updateCartProduct(req.params.productId, req.body)
+    const { quantity } = req.body
+    const product = await updateCartProduct(req.params.productId, quantity)
 
     if(product){
       res.status(200).json({message: "Product update successfully.", product: product})
