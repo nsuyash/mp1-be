@@ -4,6 +4,7 @@ const { initalizeDatabase } = require("./db/db.connect");
 const Products = require("./models/products.models");
 const Wishlist = require("./models/wishlists.models");
 const Cart = require("./models/cartProducts.models");
+const Address = require("./models/buyingAddress.models")
 
 const app = express();
 const cors = require("cors");
@@ -565,6 +566,102 @@ app.put("/cart/product/:productId", async (req, res) => {
   }
   } catch (error) {
     res.status(500).json({error: `Failed to update product: ${error}.`})
+  }
+})
+
+const obtainAllAddress = async () => {
+  try {
+    const addresses = await Address.find()
+    return addresses
+  } catch (error) {
+    throw error
+  }
+}
+
+app.get("/address", async (req, res) => {
+  try { 
+    const addresses = await obtainAllAddress()
+
+    if(addresses){
+      res.status(200).json(addresses)
+    } else {
+      res.status(404).json({error: "Address not found."})
+    }
+  } catch (error) {
+    res.status(500).josn({error: `Server error: ${error}`})
+  }
+})
+
+const seedAddress = async (addressInfo) => {
+  try {
+    const addresses = new Address(addressInfo)
+    const saveAddress = await addresses.save()
+    return saveAddress
+  } catch (error) {
+    throw error
+  }
+}
+
+app.post("/address", async (req, res) => {
+  try{
+    const addresses = await seedAddress(req.body)
+
+    if(addresses){
+      res.status(202).json({message: "Successfully saved address", address: addresses})
+    } else {
+      res.status(400).json({
+        error: "Failed to add address. Check input data is in correct format.",
+      });
+    }
+  } catch (error) {
+    res.status(500).json({error: `Server error: ${error}`})
+  }
+})
+
+const deleteAddressById = async (addressId) => {
+  try {
+    const addresses = await Address.findByIdAndDelete(addressId)
+    return addresses
+  } catch (error) {
+    throw error
+  }
+}
+
+app.delete("/address/:addressId", async (req, res) => {
+  try {
+    const addresses = await deleteAddressById(req.params.addressId)
+
+    if(addresses){
+      res.status(200).json({message: "Successfully deleted address", address: addresses})
+    } else {
+      res.status(400).json({message: "Address not found."})
+    }
+  } catch (error) {
+    res.status(500).json({error: `Server error: ${error}`})
+  }
+})
+
+
+const updateBuyingAddress = async (AddressId, data) => {
+  try{ 
+     const product = await Address.findByIdAndUpdate(AddressId, data, {new: true})
+     return product;
+  } catch (error) {
+   throw error
+  }
+ }
+
+
+app.put("/address/:addressId", async (req, res) => {
+  try{
+    const addresses = await updateBuyingAddress(req.params.addressId, req.body)
+    if(addresses){
+      res.status(200).json({message: "addresses update successfully.", address: addresses})
+  } else {
+      res.status(404).json({message: "Failed to update. Address not found."})
+  }
+  } catch (error) {
+    res.status(500).json({error: `Server error: ${error}`})
   }
 })
 
