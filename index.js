@@ -44,33 +44,6 @@ app.get("/products", async (req, res) => {
   }
 });
 
-// To get all data route
-async function obtainAllWishlistProducts() {
-  try {
-    const products = await Wishlist.find();
-    return products;
-  } catch (error) {
-    throw error;
-  }
-}
-
-
-app.get("/wishlist", async (req, res) => {
-  try {
-    // Fetch filtered products from the database
-    const products = await obtainAllWishlistProducts();
-
-    if (products.length > 0) {
-      res.status(200).json(products);
-    } else {
-      res.status(404).json({ error: "Products Not Found." });
-    }
-  } catch (err) {
-    res.status(500).json({ error: `Server error: ${err.message}` });
-  }
-});
-
-
 // To get product by Id route
 
 async function obtainProductById(productId) {
@@ -434,6 +407,31 @@ async function seedWishlistProducts(product) {
   }
 }
 
+// To get all data route
+async function obtainAllWishlistProducts() {
+  try {
+    const products = await Wishlist.find();
+    return products;
+  } catch (error) {
+    throw error;
+  }
+}
+
+
+app.get("/wishlist", async (req, res) => {
+  try {
+    const products = await obtainAllWishlistProducts();
+
+    if (products.length > 0) {
+      res.status(200).json(products);
+    } else {
+      res.status(404).json({ error: "Products Not Found." });
+    }
+  } catch (err) {
+    res.status(500).json({ error: `Server error: ${err.message}` });
+  }
+});
+
 app.post("/wishlist/wishlistProduct", async (req, res) => {
   try {
     const newProduct = await seedWishlistProducts(req.body);
@@ -477,7 +475,7 @@ app.delete("/wishlist/:wishlistId", async (req, res) => {
 async function obtainAllCartProducts(){
   try {
     const products = await Cart.find()
-    return products
+    return products || []
   } catch (error) {
     throw error
   }
@@ -493,7 +491,7 @@ app.get('/cart/products', async (req, res) => {
       res.status(404).json({ error: "Products Not Found." });
     }  
   } catch (error) {
-    res.status(500).json({ error: `Server error: ${err.message}` });
+    res.status(500).json({ error: `Server error: ${error.message}` });
   }
 })
 
