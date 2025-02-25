@@ -605,9 +605,10 @@ const seedAddress = async (addressInfo) => {
 app.post("/address", async (req, res) => {
   try{
     const addresses = await seedAddress(req.body)
+    console.log(req.body)
 
     if(addresses){
-      res.status(202).json({message: "Successfully saved address", address: addresses})
+      res.status(201).json(addresses)
     } else {
       res.status(400).json({
         error: "Failed to add address. Check input data is in correct format.",
