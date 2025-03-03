@@ -545,6 +545,30 @@ app.delete("/cart/product/:productId", async (req, res) => {
   }
 })
 
+// Delete all products form cart
+async function deleteCartProducts(){
+  try {
+      await Cart.deleteMany({});
+      return {message: "Deleted all product form cart."}
+  } catch (error){
+      throw error
+  }
+}
+
+app.delete("/cart/products/delete", async (req, res) => {
+  try {
+      const product = await deleteCartProducts()
+
+      if(product){
+          res.status(200).json(product)
+      } else {
+          res.status(404).json({message: "Failed to delete cart product not found."})
+      }
+  } catch (error) {
+      res.status(500).json({error: `Failed to delete Products: ${error}.`})
+  }
+})
+
 const updateCartProduct = async (productId, quantity) => {
  try{ 
     const product = await Cart.findByIdAndUpdate(productId, { quantity }, {new: true})
@@ -605,7 +629,6 @@ const seedAddress = async (addressInfo) => {
 app.post("/address", async (req, res) => {
   try{
     const addresses = await seedAddress(req.body)
-    console.log(req.body)
 
     if(addresses){
       res.status(201).json(addresses)
