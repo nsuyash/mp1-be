@@ -19,6 +19,35 @@ initalizeDatabase();
 app.use(express.json());
 app.use(cors(corsOpt));
 
+
+app.get("/product/list", async (req, res) => {
+  try {
+    const searchQuery = req.query.search;
+    let query = {};
+
+    if (searchQuery) {
+      query = {
+        $or: [
+          { name: { $regex: searchQuery, $options: "i" } }, // Search in product name
+          { subCollectionType: { $regex: searchQuery, $options: "i" } }, // Search in category
+          { brand: { $regex: searchQuery, $options: "i" } }, // Search in brand
+          { ram: { $regex: searchQuery, $options: "i" } }, // Search in RAM
+          { rom: { $regex: searchQuery, $options: "i" } }, // Search in ROM
+          { internalStorage: { $regex: searchQuery, $options: "i" } }, // Search in Internal Storage
+          { processor: { $regex: searchQuery, $options: "i" } } // Search in Processor
+        ]
+      };
+    }
+
+    const products = await Products.find(query);
+
+    res.json(products);
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // To get all data route
 async function obtainAllProducts() {
   try {
