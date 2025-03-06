@@ -22,21 +22,53 @@ app.use(cors(corsOpt));
 
 app.get("/product/list", async (req, res) => {
   try {
-    const searchQuery = req.query.search;
+    const searchQuery = req.query.search?.trim();
     let query = {};
 
     if (searchQuery) {
-      query = {
-        $or: [
-          { name: { $regex: searchQuery, $options: "i" } }, // Search in product name
-          { subCollectionType: { $regex: searchQuery, $options: "i" } }, // Search in category
-          { brand: { $regex: searchQuery, $options: "i" } }, // Search in brand
-          { ram: { $regex: searchQuery, $options: "i" } }, // Search in RAM
-          { rom: { $regex: searchQuery, $options: "i" } }, // Search in ROM
-          { internalStorage: { $regex: searchQuery, $options: "i" } }, // Search in Internal Storage
-          { processor: { $regex: searchQuery, $options: "i" } } // Search in Processor
-        ]
-      };
+      const words = searchQuery.toLowerCase().split(/\s+/);
+
+  
+      let brand = words.find(word => ["redmi", "samsung", "asus", "apple", "oneplus"].includes(word));
+      let category = words.find(word => ["mobile", "laptop", "tablet", "watch"].includes(word));
+      let networkType = words.find(word => ["5g", "4g", "3g"].includes(word)); 
+      let priceCondition = words.find(word => /under|below|less|above|more|over/.test(word));
+      let priceValue = words.find(word => /^\d+$/.test(word));
+      let discountMatch = searchQuery.match(/(\d+)\s*%|\b(\d+)\s*percent\b/);
+
+      let conditions = [];
+
+      conditions.push({ modelName: { $regex: searchQuery, $options: "i" } });
+
+      if (brand) {
+        conditions.push({ "features.brand": new RegExp(brand, "i") });
+      }
+
+      if (category) {
+        conditions.push({ subCollectionType: new RegExp(category, "i") });
+      }
+
+      if (networkType) {
+        conditions.push({ highlights: { $elemMatch: { $regex: networkType, $options: "i" } } });
+      }
+
+      if (priceCondition && priceValue) {
+        let price = parseInt(priceValue);
+        if (/under|below|less/.test(priceCondition)) {
+          conditions.push({ mrp: { $lte: price } });
+        } else if (/above|more|over/.test(priceCondition)) {
+          conditions.push({ mrp: { $gte: price } });
+        }
+      }
+
+      if (discountMatch) {
+        let discountValue = parseInt(discountMatch[1] || discountMatch[2]);
+        if (!isNaN(discountValue)) {
+          conditions.push({ discount: { $gte: discountValue } });
+        }
+      }
+
+      query = { $or: conditions };
     }
 
     const products = await Products.find(query);
@@ -48,7 +80,8 @@ app.get("/product/list", async (req, res) => {
   }
 });
 
-// To get all data route
+
+
 async function obtainAllProducts() {
   try {
     const products = await Products.find();
@@ -58,10 +91,9 @@ async function obtainAllProducts() {
   }
 }
 
-// Route to get filtered products
+
 app.get("/products", async (req, res) => {
   try {
-    // Fetch filtered products from the database
     const products = await obtainAllProducts();
 
     if (products.length > 0) {
@@ -73,8 +105,6 @@ app.get("/products", async (req, res) => {
     res.status(500).json({ error: `Server error: ${err.message}` });
   }
 });
-
-// To get product by Id route
 
 async function obtainProductById(productId) {
   try {
@@ -99,10 +129,8 @@ app.get("/products/:productId", async (req, res) => {
   }
 });
 
-// Function to get products by category with filters
 async function getAllProductOfMobilesAndTablets(filters) {
   try {
-    // Include both category and filters in the query object
     const query = { collectionType: "mobiles&tablets", ...filters };
     const products = await Products.find(query);
     return products;
@@ -111,7 +139,6 @@ async function getAllProductOfMobilesAndTablets(filters) {
   }
 }
 
-// Route to handle GET request for "Mobiles & Tablets" collection
 app.get("/collection/mobiles&tablets", async (req, res) => {
   try {
     const {
@@ -125,19 +152,16 @@ app.get("/collection/mobiles&tablets", async (req, res) => {
 
     let filters = {};
 
-    // Apply brand filter
     if (brand) {
       const brandName = brand.split(",").map((value) => value.trim());
       filters["features.brand"] = { $in: brandName };
     }
 
-    // Apply RAM filter
     if (ram) {
       const ramValues = ram.split(",").map((value) => value.trim());
       filters["features.ram"] = { $in: ramValues };
     }
 
-    // Apply internal storage filter
     if (internalXstorage) {
       const internalStorageValues = internalXstorage
         .split(",")
@@ -145,7 +169,6 @@ app.get("/collection/mobiles&tablets", async (req, res) => {
       filters["features.internalStorage"] = { $in: internalStorageValues };
     }
 
-    // Apply primary camera filter
     if (primaryXcamera) {
       const primaryCameraValues = primaryXcamera
         .split(",")
@@ -153,7 +176,6 @@ app.get("/collection/mobiles&tablets", async (req, res) => {
       filters["features.primaryCamera"] = { $in: primaryCameraValues };
     }
 
-    // Apply secondary camera filter
     if (secondaryXcamera) {
       const secondaryCameraValues = secondaryXcamera
         .split(",")
@@ -161,16 +183,13 @@ app.get("/collection/mobiles&tablets", async (req, res) => {
       filters["features.secondaryCamera"] = { $in: secondaryCameraValues };
     }
 
-    // Apply processor filter
     if (processorXbrand) {
       const processorName = processorXbrand.split(",");
       filters["features.processor"] = { $in: processorName };
     }
 
-    // Fetch products based on category and filters
     const products = await getAllProductOfMobilesAndTablets(filters);
 
-    // Check if products are found and return response
     const availableSubCollectionType = await Products.distinct(
       "subCollectionType",
       { collectionType: "mobiles&tablets" },
@@ -224,14 +243,12 @@ app.get("/collection/mobiles&tablets", async (req, res) => {
       });
     }
   } catch (error) {
-    // Handle errors and return a 500 status with the error message
     res.status(500).json({
       error: `An error occurred while fetching products: ${error.message}`,
     });
   }
 });
 
-//Function to get products by category with filters
 async function getAllProductOfLaptops(filters) {
   try {
     console.log(filters);
@@ -243,7 +260,6 @@ async function getAllProductOfLaptops(filters) {
   }
 }
 
-// Route to handle GET request for "laptops" collection
 app.get("/collection/laptops", async (req, res) => {
   try {
     const {
@@ -366,7 +382,6 @@ app.get("/collection/laptops", async (req, res) => {
   }
 });
 
-// To seed multiple product data at once route
 async function seedAllProductsAtOnce(products) {
   try {
     let savedProduct = [];
@@ -398,8 +413,6 @@ app.post("/seedProduct/allProducts", async (req, res) => {
     res.status(500).json({ error: `Failed to add Products: ${error}.` });
   }
 });
-
-// To seed single product one data at once route
 
 async function seedProducts(product) {
   try {
@@ -437,7 +450,6 @@ async function seedWishlistProducts(product) {
   }
 }
 
-// To get all data route
 async function obtainAllWishlistProducts() {
   try {
     const products = await Wishlist.find();
@@ -574,7 +586,6 @@ app.delete("/cart/product/:productId", async (req, res) => {
   }
 })
 
-// Delete all products form cart
 async function deleteCartProducts(){
   try {
       await Cart.deleteMany({});
@@ -718,7 +729,7 @@ app.put("/address/:addressId", async (req, res) => {
   }
 })
 
-const PORT = 3000;
+const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Sever is running on port ${PORT}`);
 });
